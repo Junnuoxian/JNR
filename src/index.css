@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8C1D18;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #FFDAD6;
+  --color-on-primary-container: #410002;
+  
+  --color-secondary: #775653;
+  --color-on-secondary: #FFFFFF;
+  --color-secondary-container: #FFDAD6;
+  --color-on-secondary-container: #2C1513;
+
+  --color-surface: #FFF8F7;
+  --color-on-surface: #231918;
+  --color-surface-container: #FCEAE8;
+  --color-surface-container-high: #F6E4E2;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface antialiased transition-colors duration-300;
+  }
+  
+  .dark body {
+    @apply bg-stone-950 text-stone-100;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

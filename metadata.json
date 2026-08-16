@@ -1,0 +1,6 @@
+{
+  "name": "情侣纪念日 (LoveDays)",
+  "description": "A comprehensive couples' anniversary and diary application featuring countdowns, voice diaries, AI planning, and Material Design 3 interfaces.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
