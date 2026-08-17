@@ -23,6 +23,7 @@ export const useAppStore = create<AppState>()(
         }
       ],
       diaries: [],
+      user: null,
       theme: 'system',
       isOnboarded: false,
       uiStyle: 'minimal',
@@ -40,6 +41,7 @@ export const useAppStore = create<AppState>()(
       })),
       addDiary: (diary) => set((state) => ({ diaries: [...state.diaries, { ...diary, id: crypto.randomUUID() }] })),
       deleteDiary: (id) => set((state) => ({ diaries: state.diaries.filter(d => d.id !== id) })),
+      setUser: (user) => set({ user }),
       setTheme: (theme) => set({ theme }),
       setPin: (pin) => set({ isPinSet: true, pin }),
       setReminderSettings: (enabled, time) => set({ remindersEnabled: enabled, reminderTime: time }),

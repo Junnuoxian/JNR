@@ -77,48 +77,59 @@ export default function SettingsView() {
 
       <div className="px-6 space-y-8 mt-4">
         
-        {/* Account / WeChat Login */}
-        <section>
-          <h2 className={headerClasses}>我的账户</h2>
-          <div className={blockClasses}>
-            <button 
-              onClick={() => {
-                alert('正在请求微信授权登录...\n\n(提示：实际打包为 Android 时，此处将调用 Capacitor 微信原生登录插件，现在为前端 UI 演示状态)');
-              }}
-              className={`w-full flex items-center justify-between p-5 transition-colors ${uiStyle === 'cute' ? 'hover:bg-pink-50/50' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
-                  {/* WeChat Logo Placeholder */}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8.25 4C4.8 4 2 6.3 2 9.15c0 1.63.88 3.1 2.25 4.05v2.8l1.9-1c1.25.7 2.7.9 3.8.9 3.45 0 6.25-2.3 6.25-5.15S11.7 4 8.25 4zM7 7.5c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm3 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM16.5 10c-3 0-5.5 2.05-5.5 4.6 0 2.55 2.5 4.6 5.5 4.6 1 0 2.25-.2 3.25-.8l1.6.8v-2.4c1.1-.8 1.9-2.1 1.9-3.5 0-2.55-2.5-4.6-5.5-4.6zm-1.5 3c-.4 0-.75-.35-.75-.75s.35-.75.75-.75.75.35.75.75-.35.75-.75.75zm3 0c-.4 0-.75-.35-.75-.75s.35-.75.75-.75.75.35.75.75-.35.75-.75.75z"/></svg>
-                </div>
-                <div className="text-left">
-                  <h3 className={`font-bold text-lg ${uiStyle === 'cute' ? 'text-pink-600 dark:text-pink-400' : ''}`}>未登录</h3>
-                  <p className={`text-sm ${uiStyle === 'cute' ? 'text-stone-500' : 'text-zinc-500'}`}>点击绑定微信，守护你们的记忆</p>
-                </div>
-              </div>
-              <div className={`px-4 py-1.5 rounded-full text-sm font-bold ${uiStyle === 'cute' ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-[#07C160] text-white'}`}>
-                去授权
-              </div>
-            </button>
-          </div>
-        </section>
-
         {/* Cloud Sync Status */}
         <section>
-          <h2 className={headerClasses}>数据同步</h2>
-          <div className={`${blockClasses} p-5 flex items-center gap-4`}>
-            <div className={`p-4 rounded-2xl ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'}`}>
-              <Cloud className="w-8 h-8" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-lg">云端备份未开启</h3>
-              <p className={`text-sm mt-1 ${uiStyle === 'cute' ? 'text-stone-500' : 'text-zinc-500'}`}>开启多设备实时同步功能。</p>
-            </div>
+          <h2 className={headerClasses}>数据同步与账号</h2>
+          <div className={`${blockClasses} p-5`}>
+            {useAppStore(state => state.user) ? (
+              <div className="flex items-center gap-4">
+                <img src={useAppStore(state => state.user)?.headimgurl} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-white dark:border-zinc-800 shadow-sm" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg">{useAppStore(state => state.user)?.nickname}</h3>
+                  <p className={`text-xs mt-1 ${uiStyle === 'cute' ? 'text-pink-500' : 'text-zinc-500'}`}>已绑定微信</p>
+                </div>
+                <button 
+                  onClick={() => useAppStore.getState().setUser(null)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold ${uiStyle === 'cute' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                >
+                  退出
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className={`p-4 rounded-2xl ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'}`}>
+                  <svg viewBox="0 0 1024 1024" className="w-8 h-8 fill-current" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M682.666667 362.666667a213.333333 213.333333 0 0 1 213.333333 213.333333c0 108.8-81.066667 198.4-187.733333 213.333333l19.2 59.733334-72.533334-42.666667a228.266667 228.266667 0 0 1-89.6 19.2c-117.333333 0-213.333333-89.6-213.333333-196.266667 0-113.066667 96-209.066667 213.333333-209.066667M394.666667 192a277.333333 277.333333 0 0 1 277.333333 277.333333c0 9.6-1.066667 19.2-2.133333 27.733334-20.266667-8.533333-42.666667-12.8-65.066667-12.8-129.066667 0-234.666667 99.2-234.666667 221.866666 0 33.066667 8.533333 65.066667 23.466667 92.8-8.533333 1.066667-18.133333 1.066667-27.733334 1.066667a296.533333 296.533333 0 0 1-118.4-25.6l-97.066666 56.533333 26.666666-80A266.666667 266.666667 0 0 1 117.333333 469.333333c0-149.333333 123.733333-277.333333 277.333334-277.333333M736 501.333333a32 32 0 1 0 0 64 32 32 0 0 0 0-64M629.333333 501.333333a32 32 0 1 0 0 64 32 32 0 0 0 0-64M458.666667 362.666667a42.666667 42.666667 0 1 0 0 85.333333 42.666667 42.666667 0 0 0 0-85.333333M330.666667 362.666667a42.666667 42.666667 0 1 0 0 85.333333 42.666667 42.666667 0 0 0 0-85.333333"/></svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg">微信登录</h3>
+                  <p className={`text-sm mt-1 ${uiStyle === 'cute' ? 'text-stone-500' : 'text-zinc-500'}`}>绑定后开启云端备份与同步</p>
+                </div>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/wechat/login-url');
+                      const data = await res.json();
+                      if (data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        alert(data.error || '获取登录链接失败');
+                      }
+                    } catch (e) {
+                      alert('网络错误，请稍后重试');
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-transform active:scale-95 ${
+                    uiStyle === 'cute' ? 'bg-[#07C160] text-white hover:bg-[#06ad56]' : 'bg-[#07C160] text-white hover:bg-[#06ad56]'
+                  }`}
+                >
+                  去登录
+                </button>
+              </div>
+            )}
           </div>
           <p className={`flex items-center gap-2 mt-3 px-2 text-xs font-medium ${uiStyle === 'cute' ? 'text-stone-400' : 'text-zinc-400'}`}>
             <Info className="w-4 h-4" /> 
-            如需开启，请在演示后请求管理员配置 Firebase。
+            需在后端配置 WECHAT_APP_ID 和 APP_SECRET 后生效。
           </p>
         </section>
 

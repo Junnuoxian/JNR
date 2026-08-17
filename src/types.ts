@@ -1,6 +1,12 @@
 export type EventType = 'countdown' | 'anniversary' | 'annual';
 export type UIStyle = 'minimal' | 'cute';
 
+export interface UserProfile {
+  nickname: string;
+  headimgurl: string;
+  openid: string;
+}
+
 export interface CoupleEvent {
   id: string;
   name: string;
@@ -22,6 +28,7 @@ export interface DiaryEntry {
 export interface AppState {
   events: CoupleEvent[];
   diaries: DiaryEntry[];
+  user: UserProfile | null;
   theme: 'light' | 'dark' | 'system';
   isOnboarded: boolean;
   uiStyle: UIStyle;
@@ -37,6 +44,7 @@ export interface AppState {
   updateEvent: (id: string, event: Partial<CoupleEvent>) => void;
   addDiary: (diary: Omit<DiaryEntry, 'id'>) => void;
   deleteDiary: (id: string) => void;
+  setUser: (user: UserProfile | null) => void;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setPin: (pin: string) => void;
   setReminderSettings: (enabled: boolean, time: string) => void;

@@ -25,6 +25,28 @@ export default function App() {
   const [pinError, setPinError] = useState(0);
   const [bgOffset, setBgOffset] = useState({ x: 0, y: 0 });
 
+  // Handle WeChat OAuth Callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const wechatUser = params.get('wechat_user');
+    const wechatError = params.get('error');
+
+    if (wechatUser) {
+      try {
+        const user = JSON.parse(decodeURIComponent(wechatUser));
+        useAppStore.getState().setUser(user);
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.error('Failed to parse wechat user', e);
+      }
+    } else if (wechatError) {
+      alert(`微信登录失败: ${wechatError}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
