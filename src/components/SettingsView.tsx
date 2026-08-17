@@ -1,6 +1,7 @@
 import { useAppStore } from '../store';
-import { Moon, Sun, Lock, Cloud, Info, Download, Paintbrush, Image as ImageIcon, Upload } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { Moon, Sun, Lock, Cloud, Info, Download, Paintbrush, Image as ImageIcon, Upload, Bell } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import PinPad from './PinPad';
 
 const PRESET_BGS = [
   { id: 'pink-clouds', url: 'https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?q=80&w=1080&auto=format&fit=crop', label: '粉色云彩' },
@@ -15,6 +16,10 @@ export default function SettingsView() {
   const setUiStyle = useAppStore(state => state.setUiStyle);
   const backgroundImage = useAppStore(state => state.backgroundImage);
   const setBackgroundImage = useAppStore(state => state.setBackgroundImage);
+
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [setupStep, setSetupStep] = useState(1);
+  const [firstPin, setFirstPin] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +77,33 @@ export default function SettingsView() {
 
       <div className="px-6 space-y-8 mt-4">
         
+        {/* Account / WeChat Login */}
+        <section>
+          <h2 className={headerClasses}>我的账户</h2>
+          <div className={blockClasses}>
+            <button 
+              onClick={() => {
+                alert('正在请求微信授权登录...\n\n(提示：实际打包为 Android 时，此处将调用 Capacitor 微信原生登录插件，现在为前端 UI 演示状态)');
+              }}
+              className={`w-full flex items-center justify-between p-5 transition-colors ${uiStyle === 'cute' ? 'hover:bg-pink-50/50' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-500' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
+                  {/* WeChat Logo Placeholder */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8.25 4C4.8 4 2 6.3 2 9.15c0 1.63.88 3.1 2.25 4.05v2.8l1.9-1c1.25.7 2.7.9 3.8.9 3.45 0 6.25-2.3 6.25-5.15S11.7 4 8.25 4zM7 7.5c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm3 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM16.5 10c-3 0-5.5 2.05-5.5 4.6 0 2.55 2.5 4.6 5.5 4.6 1 0 2.25-.2 3.25-.8l1.6.8v-2.4c1.1-.8 1.9-2.1 1.9-3.5 0-2.55-2.5-4.6-5.5-4.6zm-1.5 3c-.4 0-.75-.35-.75-.75s.35-.75.75-.75.75.35.75.75-.35.75-.75.75zm3 0c-.4 0-.75-.35-.75-.75s.35-.75.75-.75.75.35.75.75-.35.75-.75.75z"/></svg>
+                </div>
+                <div className="text-left">
+                  <h3 className={`font-bold text-lg ${uiStyle === 'cute' ? 'text-pink-600 dark:text-pink-400' : ''}`}>未登录</h3>
+                  <p className={`text-sm ${uiStyle === 'cute' ? 'text-stone-500' : 'text-zinc-500'}`}>点击绑定微信，守护你们的记忆</p>
+                </div>
+              </div>
+              <div className={`px-4 py-1.5 rounded-full text-sm font-bold ${uiStyle === 'cute' ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-[#07C160] text-white'}`}>
+                去授权
+              </div>
+            </button>
+          </div>
+        </section>
+
         {/* Cloud Sync Status */}
         <section>
           <h2 className={headerClasses}>数据同步</h2>
@@ -88,6 +120,46 @@ export default function SettingsView() {
             <Info className="w-4 h-4" /> 
             如需开启，请在演示后请求管理员配置 Firebase。
           </p>
+        </section>
+
+        {/* Reminders */}
+        <section>
+          <h2 className={headerClasses}>提醒设置</h2>
+          <div className={blockClasses}>
+            <div className={`w-full flex items-center justify-between p-5 transition-colors ${uiStyle === 'cute' ? 'border-b border-pink-50 dark:border-stone-800' : 'border-b border-zinc-100 dark:border-zinc-800'}`}>
+              <div className="flex items-center gap-3">
+                <Bell className={`w-5 h-5 ${uiStyle === 'cute' ? 'text-pink-500' : 'text-zinc-500'}`} />
+                <span className="font-bold">开启纪念日提醒</span>
+              </div>
+              <button 
+                onClick={() => {
+                  const enabled = !useAppStore.getState().remindersEnabled;
+                  useAppStore.getState().setReminderSettings(enabled, useAppStore.getState().reminderTime);
+                  if (enabled && 'Notification' in window && Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  useAppStore(state => state.remindersEnabled) 
+                    ? (uiStyle === 'cute' ? 'bg-pink-400' : 'bg-zinc-900 dark:bg-zinc-100') 
+                    : 'bg-stone-300 dark:bg-stone-700'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  useAppStore(state => state.remindersEnabled) ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+            <div className={`w-full flex items-center justify-between p-5 ${!useAppStore(state => state.remindersEnabled) ? 'opacity-50 pointer-events-none' : ''}`}>
+              <span className="font-bold">提醒时间</span>
+              <input 
+                type="time" 
+                value={useAppStore(state => state.reminderTime)}
+                onChange={(e) => useAppStore.getState().setReminderSettings(useAppStore.getState().remindersEnabled, e.target.value)}
+                className={`px-3 py-1.5 rounded-lg font-bold outline-none ${uiStyle === 'cute' ? 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-100' : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'}`}
+              />
+            </div>
+          </div>
         </section>
 
         {/* Style Switch */}
@@ -178,6 +250,53 @@ export default function SettingsView() {
                 </button>
               ))}
             </div>
+            
+            {/* Visual Adjustments */}
+            {backgroundImage && (
+              <div className={`mt-4 pt-4 border-t ${uiStyle === 'cute' ? 'border-pink-100 dark:border-pink-900/30' : 'border-zinc-200 dark:border-zinc-800'}`}>
+                <div className="space-y-4">
+                  {/* Blur Slider */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`text-sm font-bold ${uiStyle === 'cute' ? 'text-pink-900 dark:text-pink-100' : 'text-zinc-900 dark:text-zinc-100'}`}>背景图片清晰度</span>
+                      <span className={`text-xs font-bold ${uiStyle === 'cute' ? 'text-pink-400' : 'text-zinc-500'}`}>{useAppStore(state => state.bgBlur) === 0 ? '完全清晰' : '模糊'}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="20" 
+                      value={20 - useAppStore(state => state.bgBlur)} 
+                      onChange={(e) => useAppStore.getState().setBgBlur(20 - Number(e.target.value))}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/50 accent-pink-500' : 'bg-zinc-200 dark:bg-zinc-800 accent-zinc-900 dark:accent-zinc-100'}`}
+                    />
+                    <div className="flex justify-between text-[10px] mt-1 opacity-50 font-bold">
+                      <span>模糊全貌</span>
+                      <span>清晰原图</span>
+                    </div>
+                  </div>
+
+                  {/* Card Opacity Slider */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`text-sm font-bold ${uiStyle === 'cute' ? 'text-pink-900 dark:text-pink-100' : 'text-zinc-900 dark:text-zinc-100'}`}>卡片清晰度 (不透明度)</span>
+                      <span className={`text-xs font-bold ${uiStyle === 'cute' ? 'text-pink-400' : 'text-zinc-500'}`}>{useAppStore(state => state.cardOpacity)}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="10" 
+                      max="100" 
+                      value={useAppStore(state => state.cardOpacity)} 
+                      onChange={(e) => useAppStore.getState().setCardOpacity(Number(e.target.value))}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/50 accent-pink-500' : 'bg-zinc-200 dark:bg-zinc-800 accent-zinc-900 dark:accent-zinc-100'}`}
+                    />
+                    <div className="flex justify-between text-[10px] mt-1 opacity-50 font-bold">
+                      <span>晶莹剔透</span>
+                      <span>清晰纯色</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -193,13 +312,7 @@ export default function SettingsView() {
                   useAppStore.setState({ isPinSet: false });
                   alert('应用锁已关闭');
                 } else {
-                  const p = window.prompt('设置4位数字密码:');
-                  if (p && p.length === 4 && /^\d+$/.test(p)) {
-                    useAppStore.getState().setPin(p);
-                    alert('密码设置成功！下次进入应用将要求输入密码。');
-                  } else if (p) {
-                    alert('密码必须是4位纯数字');
-                  }
+                  setShowPinSetup(true);
                 }
               }}
               className={`w-full flex items-center justify-between p-5 transition-colors ${uiStyle === 'cute' ? 'border-b border-pink-50 dark:border-stone-800 hover:bg-pink-50/50' : 'border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
@@ -241,43 +354,6 @@ export default function SettingsView() {
                 <span className="font-bold">导出年度回忆录 (PDF)</span>
               </div>
             </button>
-            <div className="relative overflow-hidden group">
-              <button 
-                onClick={(e) => {
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-                className={`w-full flex items-center justify-between p-5 transition-colors ${uiStyle === 'cute' ? 'text-rose-500 hover:bg-rose-50/50 dark:hover:bg-rose-900/10' : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                  <div className="text-left">
-                    <span className="font-bold block">恢复出厂设置</span>
-                    <span className="text-xs opacity-60">清空所有本地数据</span>
-                  </div>
-                </div>
-              </button>
-              
-              <div className="hidden absolute inset-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm z-10 flex flex-col justify-center items-center p-4 animate-in fade-in">
-                <span className="text-sm font-bold text-red-500 mb-3 text-center">将清除所有纪念日、日记与密码，确定吗？</span>
-                <div className="flex gap-3 w-full max-w-[200px]">
-                  <button 
-                    onClick={(e) => e.currentTarget.parentElement?.parentElement?.classList.add('hidden')} 
-                    className="flex-1 py-2 rounded-xl text-sm font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
-                  >
-                    取消
-                  </button>
-                  <button 
-                    onClick={() => {
-                      localStorage.removeItem('love-days-storage');
-                      window.location.reload();
-                    }}
-                    className="flex-1 py-2 rounded-xl text-sm font-bold bg-red-500 text-white"
-                  >
-                    确定清除
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -329,6 +405,45 @@ export default function SettingsView() {
         </section>
 
       </div>
+
+      {showPinSetup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950 p-4">
+          <div className="w-full relative">
+            <button 
+              onClick={() => {
+                setShowPinSetup(false); 
+                setSetupStep(1); 
+                setFirstPin('');
+              }} 
+              className="absolute -top-12 left-4 p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 z-10"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <PinPad
+              key={setupStep} // reset input when step changes
+              showBiometrics={false}
+              title={setupStep === 1 ? "设置4位数字密码" : "再次确认密码"}
+              onComplete={(pin) => {
+                if (setupStep === 1) {
+                  setFirstPin(pin);
+                  setSetupStep(2);
+                } else {
+                  if (pin === firstPin) {
+                    useAppStore.getState().setPin(pin);
+                    setShowPinSetup(false);
+                    setSetupStep(1);
+                    setFirstPin('');
+                  } else {
+                    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                    setSetupStep(1);
+                    setFirstPin('');
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

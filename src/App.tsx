@@ -4,6 +4,8 @@ import DiaryView from './components/DiaryView';
 import SettingsView from './components/SettingsView';
 import BottomNav from './components/BottomNav';
 import OnboardingView from './components/OnboardingView';
+import PinPad from './components/PinPad';
+import Decorations from './components/Decorations';
 import { useAppStore } from './store';
 import { Lock } from 'lucide-react';
 
@@ -16,6 +18,12 @@ export default function App() {
   const backgroundImage = useAppStore(state => state.backgroundImage);
   const isPinSet = useAppStore(state => state.isPinSet);
   const correctPin = useAppStore(state => state.pin);
+  
+  const bgBlur = useAppStore(state => state.bgBlur);
+  const cardOpacity = useAppStore(state => state.cardOpacity);
+
+  const [pinError, setPinError] = useState(0);
+  const [bgOffset, setBgOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -32,6 +40,57 @@ export default function App() {
     }
   }, [theme]);
 
+  // Reminder logic
+  useEffect(() => {
+    const checkReminder = () => {
+      const state = useAppStore.getState();
+      if (!state.remindersEnabled || !state.reminderTime) return;
+
+      const now = new Date();
+      const currentHours = now.getHours().toString().padStart(2, '0');
+      const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+      if (currentTimeStr === state.reminderTime && now.getSeconds() === 0) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('碎碎念日记', {
+            body: '今天是特别的一天吗？来看看你们的纪念日和日记吧！',
+            icon: '/vite.svg'
+          });
+        }
+      }
+    };
+
+    const interval = setInterval(checkReminder, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Parallax effect using DeviceOrientation API
+  useEffect(() => {
+    if (!window.DeviceOrientationEvent) return;
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      let gamma = event.gamma || 0; // left/right
+      let beta = event.beta || 0;   // front/back
+
+      // constrain and dampen
+      const maxTilt = 25;
+      const panAmount = 20;
+
+      gamma = Math.max(-maxTilt, Math.min(maxTilt, gamma));
+      beta = Math.max(-maxTilt, Math.min(maxTilt, beta));
+
+      // smooth calculation
+      const x = (gamma / maxTilt) * panAmount;
+      const y = (beta / maxTilt) * panAmount;
+
+      setBgOffset({ x, y });
+    };
+
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, []);
+
   if (!isOnboarded) {
     return <OnboardingView />;
   }
@@ -39,38 +98,23 @@ export default function App() {
   if (isPinSet && !unlocked) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-6">
-        <div className="w-16 h-16 bg-pink-100 dark:bg-pink-900/30 text-pink-500 rounded-full flex items-center justify-center mb-6">
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors ${pinError > 0 ? 'bg-red-100 text-red-500' : 'bg-pink-100 dark:bg-pink-900/30 text-pink-500'}`}>
           <Lock className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold mb-6 text-zinc-900 dark:text-zinc-100">请输入隐私密码</h2>
-        <div className="flex gap-2">
-          {[1,2,3,4].map(i => (
-            <input 
-              key={i} 
-              type="password" 
-              maxLength={1}
-              className="w-12 h-14 text-center text-2xl font-bold bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:border-pink-400 outline-none"
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val && i < 4) {
-                  (e.target.nextSibling as HTMLInputElement)?.focus();
-                }
-                if (i === 4) {
-                  // Extremely basic check for demo
-                  const inputs = Array.from(e.target.parentElement!.querySelectorAll('input'));
-                  const entered = inputs.map(inp => inp.value).join('');
-                  if (entered === correctPin) {
-                    setUnlocked(true);
-                  } else if (entered.length === 4) {
-                    inputs.forEach(inp => inp.value = '');
-                    inputs[0].focus();
-                    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-                  }
-                }
-              }}
-            />
-          ))}
-        </div>
+        <PinPad 
+          key={pinError} // remounts PinPad on error to clear input
+          showBiometrics={true}
+          title={pinError > 0 ? "密码错误，请重试" : "请输入隐私密码"}
+          onComplete={(entered) => {
+            if (entered === correctPin) {
+              setUnlocked(true);
+              setPinError(0);
+            } else {
+              if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+              setPinError(prev => prev + 1);
+            }
+          }} 
+        />
       </div>
     );
   }
@@ -84,20 +128,50 @@ export default function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans relative z-0 ${styleWrapperClass} ${bgClasses}`}>
+      <style>{`
+        :root {
+          --card-opacity: ${cardOpacity / 100};
+        }
+        .glass-card {
+          backdrop-filter: blur(12px) !important;
+          -webkit-backdrop-filter: blur(12px) !important;
+        }
+        .style-cute .glass-card {
+          background-color: rgba(255, 255, 255, var(--card-opacity)) !important;
+        }
+        .dark .style-cute .glass-card {
+          background-color: rgba(42, 29, 32, var(--card-opacity)) !important;
+        }
+        .style-minimal .glass-card {
+          background-color: rgba(255, 255, 255, var(--card-opacity)) !important;
+        }
+        .dark .style-minimal .glass-card {
+          background-color: rgba(24, 24, 27, var(--card-opacity)) !important;
+        }
+      `}</style>
       
       {backgroundImage && (
         <div 
-          className="fixed inset-0 z-[-1] bg-cover bg-center transition-all duration-700"
-          style={{ backgroundImage: `url(${backgroundImage})` }}
+          className="fixed inset-[-30px] z-[-1] bg-cover bg-center transition-transform duration-75 ease-out"
+          style={{ 
+            backgroundImage: `url(${backgroundImage})`,
+            transform: `translate3d(${bgOffset.x}px, ${bgOffset.y}px, 0) scale(1.05)`
+          }}
         >
           {/* Translucent overlay to ensure text readability while seeing the background */}
-          <div className={`absolute inset-0 backdrop-blur-[3px] transition-colors duration-300 ${
-            uiStyle === 'cute' ? 'bg-[#FFF5F7]/50 dark:bg-[#1A1214]/60' : 'bg-zinc-50/60 dark:bg-zinc-950/80'
-          }`} />
+          <div className={`absolute inset-0 transition-colors duration-300 ${
+            uiStyle === 'cute' ? 'bg-[#FFF5F7] dark:bg-[#1A1214]' : 'bg-zinc-50 dark:bg-zinc-950'
+          }`} style={{
+            backdropFilter: `blur(${bgBlur}px)`,
+            WebkitBackdropFilter: `blur(${bgBlur}px)`,
+            opacity: cardOpacity / 100
+          }} />
         </div>
       )}
 
-      <main className="max-w-3xl mx-auto h-full relative">
+      <Decorations />
+
+      <main className="max-w-3xl mx-auto h-full relative z-10">
         {currentTab === 'home' && <HomeView />}
         {currentTab === 'diary' && <DiaryView />}
         {currentTab === 'settings' && <SettingsView />}

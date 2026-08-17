@@ -1,7 +1,7 @@
 import { differenceInDays, parseISO, setYear, isBefore, startOfDay, differenceInYears } from 'date-fns';
 import { useAppStore } from '../store';
 import { CoupleEvent, UIStyle } from '../types';
-import { Calendar, Plus, Sparkles, Clock, MoreHorizontal } from 'lucide-react';
+import { Calendar, Plus, Sparkles, Clock, MoreHorizontal, X } from 'lucide-react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
@@ -158,8 +158,8 @@ function EventCard({ event, isLarge, uiStyle, onEdit }: { event: CoupleEvent, is
 
   // 00s Style Variables
   const cardClasses = uiStyle === 'cute' 
-    ? `bg-white/80 dark:bg-[#2A1D20]/80 backdrop-blur-md rounded-[2.5rem] p-5 shadow-sm border-[3px] border-white/60 dark:border-white/5 relative overflow-hidden transition-all ${isLarge ? 'shadow-pink-100 dark:shadow-rose-950 shadow-xl' : ''}`
-    : `bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-sm border border-zinc-200 dark:border-zinc-800 relative transition-all ${isLarge ? 'shadow-md' : ''}`;
+    ? `glass-card rounded-[2.5rem] p-5 shadow-sm border-[3px] border-white/60 dark:border-white/5 relative overflow-hidden transition-all ${isLarge ? 'shadow-pink-100 dark:shadow-rose-950 shadow-xl' : ''}`
+    : `glass-card rounded-3xl p-5 shadow-sm border border-zinc-200 dark:border-zinc-800 relative transition-all ${isLarge ? 'shadow-md' : ''}`;
 
   const tagClasses = uiStyle === 'cute'
     ? 'px-3 py-1 bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 rounded-full text-[10px] font-black tracking-wider uppercase'
@@ -294,23 +294,39 @@ function EventFormModal({ onClose, onSave, onDelete, initialData, uiStyle }: {
   initialData?: CoupleEvent,
   uiStyle: UIStyle 
 }) {
+  const defaultDateStr = initialData ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0];
   const [name, setName] = useState(initialData?.name || '');
-  const [date, setDate] = useState(initialData ? initialData.date.split('T')[0] : '');
+  const [year, setYear] = useState(defaultDateStr.split('-')[0]);
+  const [month, setMonth] = useState(defaultDateStr.split('-')[1]);
+  const [day, setDay] = useState(defaultDateStr.split('-')[2]);
   const [type, setType] = useState<'countdown' | 'anniversary' | 'annual'>(initialData?.type || 'annual');
   const [icon, setIcon] = useState(initialData?.icon || '💕');
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !date) return;
+    if (!name || !year || !month || !day) return;
+    
+    const selectedDate = new Date(`${year}-${month}-${day}T00:00:00`);
+    if (isNaN(selectedDate.getTime())) {
+      alert("日期无效");
+      return;
+    }
+
     onSave({
       name,
-      date: new Date(date).toISOString(),
+      date: selectedDate.toISOString(),
       type,
       icon
     });
     onClose();
   };
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({length: 101}, (_, i) => currentYear - 80 + i);
+  const months = Array.from({length: 12}, (_, i) => String(i + 1).padStart(2, '0'));
+  const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+  const days = Array.from({length: daysInMonth || 31}, (_, i) => String(i + 1).padStart(2, '0'));
 
   const modalClasses = uiStyle === 'cute'
     ? 'bg-[#FFF5F7] dark:bg-[#1A1214] rounded-t-[2.5rem] sm:rounded-[2.5rem]'
@@ -325,15 +341,15 @@ function EventFormModal({ onClose, onSave, onDelete, initialData, uiStyle }: {
     : 'w-full bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 rounded-xl p-4 font-bold text-lg active:scale-95 transition-all mt-6';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 backdrop-blur-sm p-4">
-      <div className={`w-full max-w-md p-6 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 shadow-2xl ${modalClasses}`}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <div className={`w-full max-w-md p-6 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 shadow-2xl max-h-[90dvh] overflow-y-auto ${modalClasses}`} onClick={e => e.stopPropagation()}>
         
         <div className="flex justify-between items-center mb-6">
           <h2 className={`text-2xl ${uiStyle === 'cute' ? 'font-black text-rose-900 dark:text-rose-100' : 'font-bold text-zinc-900 dark:text-zinc-100'}`}>
             {initialData ? '编辑纪念日' : '自定义纪念日'}
           </h2>
           <button onClick={onClose} className={`p-2 rounded-full ${uiStyle === 'cute' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'}`}>
-            <Plus className="w-5 h-5 rotate-45" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
@@ -376,13 +392,44 @@ function EventFormModal({ onClose, onSave, onDelete, initialData, uiStyle }: {
           
           <div>
             <label className={`block text-sm font-bold mb-2 ${uiStyle === 'cute' ? 'text-stone-600 dark:text-stone-400' : 'text-zinc-600 dark:text-zinc-400'}`}>目标日期</label>
-            <input 
-              type="date" 
-              required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={inputClasses}
-            />
+            <div className="flex gap-2">
+              <div className="flex-[2] relative">
+                <select 
+                  value={year} 
+                  onChange={(e) => setYear(e.target.value)}
+                  className={`${inputClasses} appearance-none pr-8`}
+                >
+                  {years.map(y => <option key={y} value={y}>{y}年</option>)}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+              <div className="flex-[1.5] relative">
+                <select 
+                  value={month} 
+                  onChange={(e) => setMonth(e.target.value)}
+                  className={`${inputClasses} appearance-none pr-8`}
+                >
+                  {months.map(m => <option key={m} value={m}>{m}月</option>)}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+              <div className="flex-[1.5] relative">
+                <select 
+                  value={day} 
+                  onChange={(e) => setDay(e.target.value)}
+                  className={`${inputClasses} appearance-none pr-8`}
+                >
+                  {days.map(d => <option key={d} value={d}>{d}日</option>)}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>

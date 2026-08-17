@@ -1,14 +1,57 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAppStore } from '../store';
 import { DiaryEntry } from '../types';
-import { Mic, Send, BookHeart, Plus } from 'lucide-react';
+import { Mic, Send, BookHeart, Plus, Image as ImageIcon, X } from 'lucide-react';
 
 export default function DiaryView() {
   const diaries = useAppStore(state => state.diaries);
   const addDiary = useAppStore(state => state.addDiary);
+  const deleteDiary = useAppStore(state => state.deleteDiary);
   const uiStyle = useAppStore(state => state.uiStyle);
   const [content, setContent] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [image, setImage] = useState<string | null>(null);
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Compress to JPEG to save space in LocalStorage
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setImage(dataUrl);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Web Speech API for voice input
   const handleVoiceInput = () => {
@@ -43,14 +86,16 @@ export default function DiaryView() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !image) return;
     
     addDiary({
       content,
       date: new Date().toISOString(),
-      mood: 'romantic'
+      mood: 'romantic',
+      image: image || undefined
     });
     setContent('');
+    setImage(null);
   };
 
   return (
@@ -76,8 +121,8 @@ export default function DiaryView() {
             <div 
               key={diary.id} 
               className={uiStyle === 'cute' 
-                ? "bg-white/80 dark:bg-[#2A1D20]/80 rounded-[2rem] p-6 shadow-sm border-[3px] border-white/60 dark:border-white/5 relative group transition-all"
-                : "bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 relative group transition-all"
+                ? "glass-card rounded-[2rem] p-6 shadow-sm border-[3px] border-white/60 dark:border-white/5 relative group transition-all"
+                : "glass-card rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 relative group transition-all"
               }
             >
               <div className="flex justify-between items-start mb-3">
@@ -112,6 +157,14 @@ export default function DiaryView() {
                   </button>
                 </div>
               </div>
+              {diary.image && (
+                <div 
+                  className="mb-3 overflow-hidden rounded-xl cursor-pointer transition-transform hover:scale-[1.02]"
+                  onClick={() => setFullScreenImage(diary.image || null)}
+                >
+                  <img src={diary.image} alt="Diary attachment" className="w-full h-auto object-cover max-h-64" />
+                </div>
+              )}
               <p className={`leading-relaxed whitespace-pre-wrap font-medium ${uiStyle === 'cute' ? 'text-stone-800 dark:text-stone-200' : 'text-zinc-800 dark:text-zinc-200'}`}>
                 {diary.content}
               </p>
@@ -120,12 +173,47 @@ export default function DiaryView() {
         )}
       </div>
 
+      {/* Fullscreen Image Viewer */}
+      {fullScreenImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-200 cursor-zoom-out"
+          onClick={() => setFullScreenImage(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
+            onClick={() => setFullScreenImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img 
+            src={fullScreenImage} 
+            alt="Fullscreen view" 
+            className="max-w-[95vw] max-h-[90vh] object-contain transition-transform duration-300 animate-in zoom-in-95" 
+            onClick={(e) => e.stopPropagation()} // Let user pan/zoom if they pinch on mobile (native behavior for img)
+          />
+        </div>
+      )}
+
       {/* Input Area anchored to bottom (above nav) */}
       <div className={`fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t z-20 ${
         uiStyle === 'cute' 
           ? 'from-[#FFF5F7] via-[#FFF5F7] dark:from-[#1A1214] dark:via-[#1A1214] to-transparent'
           : 'from-zinc-50 via-zinc-50 dark:from-zinc-950 dark:via-zinc-950 to-transparent'
       }`}>
+        {image && (
+          <div className="max-w-2xl mx-auto mb-2 px-2 relative">
+            <div className="relative inline-block">
+              <img src={image} alt="Preview" className={`h-24 w-auto object-cover ${uiStyle === 'cute' ? 'rounded-2xl border-2 border-pink-200' : 'rounded-xl border border-zinc-300'}`} />
+              <button
+                type="button"
+                onClick={() => setImage(null)}
+                className="absolute -top-2 -right-2 bg-black/60 text-white p-1 rounded-full backdrop-blur-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
         <form 
           onSubmit={handleSubmit} 
           className={`flex gap-2 max-w-2xl mx-auto items-end p-2 shadow-lg ${
@@ -134,6 +222,22 @@ export default function DiaryView() {
               : 'bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800'
           }`}
         >
+          <input 
+            type="file" 
+            accept="image/*" 
+            ref={fileInputRef} 
+            onChange={handleImagePick} 
+            className="hidden" 
+          />
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`p-3 transition-colors flex-shrink-0 ${
+              uiStyle === 'cute' ? 'rounded-[1.5rem] text-pink-500 bg-pink-50 dark:bg-pink-900/30 hover:bg-pink-100' : 'rounded-xl text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200'
+            }`}
+          >
+            <ImageIcon className="w-6 h-6" />
+          </button>
           <button 
             type="button"
             onClick={handleVoiceInput}
@@ -158,7 +262,7 @@ export default function DiaryView() {
           
           <button 
             type="submit"
-            disabled={!content.trim()}
+            disabled={!content.trim() && !image}
             className={`p-3 transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex-shrink-0 ${
               uiStyle === 'cute'
                 ? 'bg-gradient-to-r from-pink-400 to-rose-400 text-white rounded-[1.5rem]'
